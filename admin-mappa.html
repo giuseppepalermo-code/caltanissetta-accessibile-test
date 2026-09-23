@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Area Riservata Operatori - Mappa Accessibilità | NessunOstacolo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --brand:#1f4b7a; --brand-dark:#163a5f; --brand-soft:#eaf2fb; --accent:#f2b705;
+      --bg:#eef3f8; --panel:#ffffff; --text:#0f172a; --muted:#5b6673; --line:#d8e2ee;
+      --radius:20px; --shadow:0 14px 34px rgba(15,23,42,.08); --shadow-soft:0 8px 22px rgba(15,23,42,.06);
+      --red-bg:#ffe2e2; --red-text:#b00020; --orange-bg:#ffe7c2; --orange-text:#b85c00;
+      --green-bg:#d8f7e6; --green-text:#0f8a4b; --blue-bg:#dfe8ff; --blue-text:#1f4ed8;
+      --purple-bg:#efe1ff; --purple-text:#6b21a8; --gray-bg:#edf3f8; --gray-text:#334155;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef3f8 0%,#f8fbff 100%);color:var(--text);}
+    .hidden{display:none !important}
+    .btn{border:none;border-radius:16px;padding:12px 16px;font-size:.96rem;cursor:pointer;font-weight:800;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-soft)}
+    .btn-brand{background:var(--brand);color:#fff}
+    .btn-light{background:#edf3f8;color:#223}
+    .btn-danger{background:#ffe6e6;color:#b42318}
+    .btn-accent{background:var(--accent);color:#111827}
+    .btn-purple{background:#6b21a8;color:#fff}
+    .btn-small{padding:10px 12px;border-radius:12px;font-size:.86rem}
+    .btn-hide{background:#e5e7eb;color:#374151}
+    .btn-archive{background:#f3e8ff;color:#7e22ce}
+    .btn-restore{background:#dcfce7;color:#166534}
+    .btn-primary{background:var(--brand);color:#fff}
+    .btn-secondary{background:#eef3f8;color:#223}
+
+    .login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .login-card{width:100%;max-width:620px;background:var(--panel);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:28px}
+    .brand-login{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .brand-login img{width:74px;height:74px;object-fit:contain;border-radius:18px;background:#fff;border:1px solid var(--line);padding:8px;box-shadow:var(--shadow-soft)}
+    .brand-login-text h1{margin:0 0 6px 0;font-size:2rem;color:var(--brand-dark);line-height:1.05}
+    .brand-login-text p{margin:0;color:var(--muted);line-height:1.45;font-size:.98rem}
+
+    .field{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+    .field label{font-size:.95rem;color:var(--muted);font-weight:700}
+    .field span{font-size:.95rem;color:var(--muted);font-weight:700}
+    .field input,.field select,.field textarea{width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:16px;font-size:1rem;outline:none;background:#fff;color:var(--text)}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(31,75,122,.10)}
+    .field input[type="file"]{padding:10px 12px}
+
+    .msg{margin-top:12px;font-size:.95rem;min-height:22px;font-weight:700}
+    .msg.error{color:var(--red-text)}
+    .msg.ok{color:var(--green-text)}
+
+    .app{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+    .sidebar{background:linear-gradient(180deg,var(--brand-dark),var(--brand));color:#fff;padding:22px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px;box-shadow:var(--shadow);overflow:auto}
+    .sidebar-brand{display:flex;gap:14px;align-items:flex-start}
+    .sidebar-brand img{width:68px;height:68px;object-fit:contain;border-radius:16px;background:rgba(255,255,255,.92);padding:6px;border:1px solid rgba(255,255,255,.35);flex-shrink:0}
+    .sidebar-brand h2{margin:0;font-size:1.45rem;line-height:1.05;letter-spacing:-.02em}
+    .sidebar-brand p{margin:8px 0 0 0;opacity:.95;line-height:1.35;font-size:.92rem}
+    .role-badge{
+      margin-top:10px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.22);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:.82rem;
+      font-weight:800;
+    }
+
+    .menu{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .menu-btn{width:100%;text-align:left;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px 14px;font-size:1rem;font-weight:800;cursor:pointer;transition:.15s ease}
+    .menu-btn:hover,.menu-btn.active{background:#fff;color:var(--brand-dark);transform:translateX(2px)}
+
+    .sidebar-footer{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+    .sidebar-note{font-size:.88rem;line-height:1.4;opacity:.95;background:rgba(255,255,255,.08);border-radius:16px;padding:12px}
+
+    .main{padding:22px}
+    .top-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+
+    .section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .section-head h2{margin:0;font-size:1.45rem;letter-spacing:-.02em}
+    .section-head p{margin:6px 0 0 0;color:var(--muted);line-height:1.4;font-size:.96rem}
+
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+    .filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:14px;align-items:end}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .meta-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+    .results-count{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:var(--blue-bg);color:var(--blue-text);font-weight:800}
+    .cards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+
+    .stat{border-radius:22px;padding:18px;border:2px solid transparent;box-shadow:var(--shadow-soft);min-height:128px;position:relative;overflow:hidden}
+    .stat::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,0));pointer-events:none}
+    .stat-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:relative;z-index:1}
+    .stat strong{display:block;font-size:2.5rem;line-height:1;letter-spacing:-.03em}
+    .stat-label{margin-top:10px;font-size:1rem;font-weight:800;line-height:1.3;position:relative;z-index:1}
+    .stat-icon{width:50px;height:50px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;background:rgba(255,255,255,.35);position:relative;z-index:1}
+    .stat-total{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#93c5fd;color:#0b3a8f}
+    .stat-red{background:linear-gradient(135deg,#ffd7d7,#ffbdbd);border-color:#ff8f8f;color:#8f1020}
+    .stat-orange{background:linear-gradient(135deg,#ffe2b0,#ffd08c);border-color:#ffba5a;color:#92400e}
+    .stat-green{background:linear-gradient(135deg,#d1fae5,#b7f3d6);border-color:#6ee7b7;color:#065f46}
+    .stat-public{background:linear-gradient(135deg,#dbeafe,#c7d2fe);border-color:#93c5fd;color:#1d4ed8}
+    .stat-hidden{background:linear-gradient(135deg,#e5e7eb,#d1d5db);border-color:#cbd5e1;color:#374151}
+    .stat-active{background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-color:#86efac;color:#166534}
+    .stat-archived{background:linear-gradient(135deg,#f3e8ff,#e9d5ff);border-color:#d8b4fe;color:#7e22ce}
+
+    .report-card{border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:var(--shadow-soft);overflow:hidden;display:flex;flex-direction:column}
+    .report-head{padding:18px 18px 12px;background:linear-gradient(180deg,#fbfdff,#f8fbff);border-bottom:1px solid #edf2f7}
+    .report-code{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:#edf3f8;color:#23364d;font-weight:800;font-size:.82rem;margin-bottom:10px}
+    .report-title{font-size:1.15rem;font-weight:800;line-height:1.3;margin:0 0 10px 0;color:#132238}
+    .report-badges{display:flex;flex-wrap:wrap;gap:8px}
+    .state-badge,.workflow-badge,.visibility-badge,.archive-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:999px;font-size:.83rem;font-weight:800;white-space:nowrap}
+    .state-red{background:var(--red-bg);color:var(--red-text)}
+    .state-orange{background:var(--orange-bg);color:var(--orange-text)}
+    .state-green{background:var(--green-bg);color:var(--green-text)}
+    .state-default{background:var(--gray-bg);color:var(--gray-text)}
+    .wf-new{background:var(--blue-bg);color:var(--blue-text)}
+    .wf-progress{background:var(--orange-bg);color:var(--orange-text)}
+    .wf-closed{background:var(--green-bg);color:var(--green-text)}
+    .visibility-public{background:#dbeafe;color:#1d4ed8}
+    .visibility-hidden{background:#e5e7eb;color:#374151}
+    .archive-active{background:#dcfce7;color:#166534}
+    .archive-archived{background:#f3e8ff;color:#7e22ce}
+
+    .report-body{padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .info-box{border:1px solid #edf2f7;border-radius:16px;background:#fcfdff;padding:12px 13px;min-height:82px}
+    .info-label{display:block;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin-bottom:7px}
+    .info-value{color:#1f2937;line-height:1.45;font-size:.96rem;word-break:break-word}
+    .desc-box{grid-column:1 / -1;background:linear-gradient(180deg,#fff,#fbfdff)}
+
+    .report-footer{padding:16px 18px 18px;border-top:1px solid #edf2f7;background:#fbfdff;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+    .workflow-editor{display:flex;flex-direction:column;gap:8px;min-width:220px}
+    .workflow-editor label{font-size:.8rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+    .workflow-select{min-width:220px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font-size:.95rem;background:#fff;color:var(--text)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+
+    .charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .chart-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow-soft);min-height:360px}
+    .chart-card h3{margin:0 0 14px 0;font-size:1rem}
+    .chart-box{position:relative;height:280px}
+    .report-output{border:1px solid var(--line);border-radius:20px;background:#fff;padding:18px;line-height:1.6;color:#1f2937;white-space:pre-wrap;min-height:220px}
+
+    .settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .setting-box{border:1px solid var(--line);border-radius:18px;background:#fff;padding:18px;box-shadow:var(--shadow-soft)}
+    .setting-box h3{margin:0 0 10px 0;font-size:1.1rem}
+    .setting-box p{margin:0 0 12px 0;color:var(--muted);line-height:1.45}
+
+    .empty-state{border:2px dashed var(--line);border-radius:24px;padding:28px;background:#fff;text-align:center;color:var(--muted);font-weight:700}
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:3000;
+    }
+    .modal-card{
+      background:#fff;
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      width:min(760px, 100%);
+      max-height:90vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .form-modal .modal-body{
+      overflow-y:auto;
+    }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      flex:0 0 auto;
+    }
+    .modal-header h3{
+      margin:0;
+      font-size:1.15rem;
+      color:var(--brand-dark);
+    }
+    .modal-body{
+      padding:18px;
+      color:var(--text);
+      line-height:1.7;
+    }
+    .form-segnalazione{
+      display:block;
+    }
+    .form-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+      position:sticky;
+      bottom:0;
+      background:var(--white, #fff);
+      padding-top:10px;
+    }
+
+    .foto-preview-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      margin-top:8px;
+    }
+    .foto-preview-card{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:#f8fbff;
+    }
+    .foto-preview-card img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:10px;
+      display:block;
+      background:#eef3f8;
+    }
+    .foto-preview-card .foto-empty{
+      width:100%;
+      height:120px;
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:8px;
+      background:#eef3f8;
+      color:#64748b;
+      font-size:.85rem;
+      font-weight:700;
+    }
+    .foto-preview-card .foto-label{
+      display:block;
+      margin-bottom:8px;
+      font-size:.84rem;
+      font-weight:800;
+      color:#475569;
+    }
+
+    @media print{
+      body{background:#fff}
+      .sidebar,.top-actions,.toolbar,.no-print{display:none !important}
+      .app{display:block}
+      .main{padding:0}
+      .panel{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid}
+    }
+
+    @media (max-width:1400px){
+      .app{grid-template-columns:250px 1fr}
+      .grid,.filters,.charts-grid,.cards-grid,.settings-grid{grid-template-columns:1fr}
+    }
+
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr}
+      .sidebar{position:relative;height:auto}
+      .main{padding:12px}
+      .panel{padding:16px;border-radius:20px}
+      .report-body{grid-template-columns:1fr}
+      .report-footer{flex-direction:column;align-items:stretch}
+      .workflow-editor,.workflow-select{min-width:100%}
+      .brand-login{align-items:flex-start}
+      .brand-login img{width:62px;height:62px}
+      .sidebar-brand img{width:56px;height:56px}
+      .modal{padding:0;align-items:stretch;justify-content:stretch}
+      .modal-card{width:100%;height:100%;max-height:100%;border-radius:0}
+      .form-actions{flex-direction:column}
+      .form-actions .btn{width:100%}
+      .foto-preview-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <section id="loginSection" class="login-shell">
+    <div class="login-card">
+      <div class="brand-login">
+        <img src="assets/logo-mappa.png" alt="Logo Mappa Accessibilità" onerror="this.style.display='none'">
+        <div class="brand-login-text">
+          <h1>Area Riservata Operatori</h1>
+          <p>Mappa Accessibilità – progetto di NessunOstacolo<br>Accesso riservato per operatori registrati e autorizzati.</p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="Inserisci email operatore" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Inserisci password" autocomplete="current-password" />
+      </div>
+      <div class="toolbar">
+        <button id="btnLogin" class="btn btn-brand" type="button">Entra</button>
+        <a class="btn btn-light" href="index.html">Torna alla mappa</a>
+        <a class="btn btn-light" href="https://www.nessunostacolo.org" target="_blank" rel="noopener">Vai al sito</a>
+      </div>
+      <div id="loginMsg" class="msg"></div>
+    </div>
+  </section>
+
+  <section id="appSection" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/logo-mappa.png" alt="Logo Mappa Accessibilità" onerror="this.style.display='none'">
+        <div>
+          <h2>Mappa Accessibilità</h2>
+          <p>NessunOstacolo<br>Area riservata operatori per gestione, analisi e report.</p>
+          <div id="roleBadge" class="role-badge">Ruolo: operatore</div>
+        </div>
+      </div>
+      <nav class="menu">
+        <button class="menu-btn active" data-section="dashboardSection">Dashboard</button>
+        <button class="menu-btn" data-section="segnalazioniSection">Segnalazioni</button>
+        <button class="menu-btn" data-section="analisiSection">Analisi</button>
+        <button class="menu-btn" data-section="reportSection">Report</button>
+        <button class="menu-btn" data-section="impostazioniSection">Impostazioni</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-note">Su dispositivi condivisi esci sempre dalla sessione. Il login resta solo nella scheda aperta del browser.</div>
+        <a class="btn btn-light" href="index.html">← Torna alla mappa pubblica</a>
+        <a class="btn btn-light" href="https://www.nessunostacolo.org" target="_blank" rel="noopener">🌐 Vai al sito NessunOstacolo</a>
+        <button id="btnLogoutSide" class="btn btn-danger" type="button">Esci e chiudi sessione</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="top-actions no-print">
+        <button id="btnRefreshTop" class="btn btn-light" type="button">Aggiorna</button>
+        <button id="btnPrintPage" class="btn btn-light" type="button">Stampa pagina</button>
+        <button id="btnLogoutTop" class="btn btn-danger" type="button">Logout</button>
+      </div>
+
+      <section id="dashboardSection" class="app-section">
+        <div class="panel">
+          <div class="section-head"><div><h2>Statistiche automatiche</h2><p>Cruscotto generale dell’area operatori.</p></div></div>
+          <div class="grid">
+            <div class="stat stat-total"><div class="stat-top"><strong id="statTotale">0</strong><div class="stat-icon">#</div></div><div class="stat-label">Totale segnalazioni</div></div>
+            <div class="stat stat-red"><div class="stat-top"><strong id="statRosso">0</strong><div class="stat-icon">!</div></div><div class="stat-label">Rosso = criticità grave</div></div>
+            <div class="stat stat-orange"><div class="stat-top"><strong id="statArancione">0</strong><div class="stat-icon">~</div></div><div class="stat-label">Arancione = criticità media</div></div>
+            <div class="stat stat-green"><div class="stat-top"><strong id="statVerde">0</strong><div class="stat-icon">✓</div></div><div class="stat-label">Verde = accessibile</div></div>
+            <div class="stat stat-public"><div class="stat-top"><strong id="statPubbliche">0</strong><div class="stat-icon">🌐</div></div><div class="stat-label">Pubbliche</div></div>
+            <div class="stat stat-hidden"><div class="stat-top"><strong id="statNascoste">0</strong><div class="stat-icon">🙈</div></div><div class="stat-label">Nascoste</div></div>
+            <div class="stat stat-active"><div class="stat-top"><strong id="statAttive">0</strong><div class="stat-icon">🟢</div></div><div class="stat-label">Attive</div></div>
+            <div class="stat stat-archived"><div class="stat-top"><strong id="statArchiviate">0</strong><div class="stat-icon">🗂️</div></div><div class="stat-label">Archiviate</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="segnalazioniSection" class="app-section hidden">
+        <div class="panel">
+          <div class="section-head"><div><h2>Filtri e strumenti</h2><p>Ricerca veloce, filtri dinamici ed esportazione dei risultati visibili.</p></div></div>
+          <div class="filters">
+            <div class="field"><label for="searchText">Ricerca</label><input id="searchText" type="text" placeholder="Cerca per codice, titolo, luogo, comune, descrizione" /></div>
+            <div class="field"><label for="filterComune">Comune</label><select id="filterComune"><option value="tutti">Tutti</option><option value="San Cataldo">San Cataldo</option><option value="Caltanissetta">Caltanissetta</option></select></div>
+            <div class="field"><label for="filterStatus">Stato accessibilità</label><select id="filterStatus"><option value="tutti">Tutti</option><option value="rosso">Rosso</option><option value="arancione">Arancione</option><option value="verde">Verde</option></select></div>
+            <div class="field"><label for="filterWorkflow">Stato segnalazione</label><select id="filterWorkflow"><option value="tutti">Tutti</option><option value="nuova">Nuova</option><option value="presa in carico">Presa in carico</option><option value="chiusa">Chiusa</option></select></div>
+            <div class="field"><label for="filterVisibilita">Visibilità</label><select id="filterVisibilita"><option value="tutti">Tutti</option><option value="pubblica">Pubblica</option><option value="nascosta">Nascosta</option></select></div>
+            <div class="field"><label for="filterArchivio">Archivio</label><select id="filterArchivio"><option value="tutti">Tutti</option><option value="attiva">Attiva</option><option value="archiviata">Archiviata</option></select></div>
+          </div>
+
+          <div class="toolbar no-print">
+            <button id="btnRefresh" class="btn btn-light" type="button">Aggiorna dati</button>
+            <button id="btnExportCsv" class="btn btn-light" type="button">Esporta CSV</button>
+            <button id="btnExportXlsx" class="btn btn-accent" type="button">Esporta Excel</button>
+            <button id="btnResetFilters" class="btn btn-light" type="button">Reset filtri</button>
+          </div>
+
+          <div class="toolbar no-print">
+            <button id="btnHideFiltered" class="btn btn-hide" type="button">Nascondi filtrate</button>
+            <button id="btnArchiveFiltered" class="btn btn-archive" type="button">Archivia filtrate</button>
+            <button id="btnRestoreFiltered" class="btn btn-restore" type="button">Ripristina filtrate</button>
+            <button id="btnDeleteFiltered" class="btn btn-danger" type="button">Elimina filtrate</button>
+          </div>
+
+          <div class="meta-row">
+            <div id="resultsCount" class="results-count">0 schede mostrate</div>
+            <div id="adminMsg" class="msg"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head"><div><h2>Elenco segnalazioni</h2><p>Vista operativa a schede con gestione archivio, visibilità e modifica completa.</p></div></div>
+          <div id="cardsGrid" class="cards-grid"></div>
+        </div>
+      </section>
+
+      <section id="analisiSection" class="app-section hidden">
+        <div class="panel">
+          <div class="section-head"><div><h2>Analisi e grafici</h2><p>Grafici generati a comando per studio e presentazioni.</p></div></div>
+          <div class="toolbar no-print">
+            <button id="btnBuildChartsFiltered" class="btn btn-purple" type="button">Grafici risultati filtrati</button>
+            <button id="btnBuildChartsAll" class="btn btn-light" type="button">Grafici database completo</button>
+          </div>
+          <div class="meta-row"><div id="chartBaseInfo" class="results-count">Base analisi non ancora generata</div></div>
+          <div id="chartsEmpty" class="empty-state">Nessun grafico ancora generato. Seleziona una modalità di analisi.</div>
+          <div id="chartsWrap" class="hidden">
+            <div class="charts-grid">
+              <div class="chart-card"><h3>Distribuzione stato accessibilità</h3><div class="chart-box"><canvas id="chartStatus"></canvas></div></div>
+              <div class="chart-card"><h3>Distribuzione workflow</h3><div class="chart-box"><canvas id="chartWorkflow"></canvas></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reportSection" class="app-section hidden">
+        <div class="panel">
+          <div class="section-head"><div><h2>Report elaborato</h2><p>Report ordinato, editabile, stampabile ed esportabile con intestazione di progetto.</p></div></div>
+          <div class="toolbar no-print">
+            <button id="btnBuildReportFiltered" class="btn btn-purple" type="button">Crea report filtrato</button>
+            <button id="btnBuildReportAll" class="btn btn-light" type="button">Crea report completo</button>
+            <button id="btnPrintReport" class="btn btn-light" type="button">Stampa report</button>
+            <button id="btnExportReportHtml" class="btn btn-accent" type="button">Esporta report HTML</button>
+            <button id="btnExportReportTxt" class="btn btn-light" type="button">Esporta report TXT</button>
+          </div>
+          <div class="meta-row"><div id="reportBaseInfo" class="results-count">Nessun report generato</div></div>
+          <div id="reportOutput" class="report-output">Nessun report generato.
+Clicca su “Crea report filtrato” oppure “Crea report completo”.</div>
+        </div>
+      </section>
+
+      <section id="impostazioniSection" class="app-section hidden">
+        <div class="panel">
+          <div class="section-head"><div><h2>Impostazioni operative</h2><p>Area pronta per operatori registrati e collegamento futuro al sito.</p></div></div>
+          <div class="settings-grid">
+            <div class="setting-box"><h3>Branding</h3><p>Il pannello usa il file <strong>assets/logo-mappa.png</strong>. Quando avrai il logo definitivo, basterà sostituire quel file.</p></div>
+            <div class="setting-box"><h3>Accesso riservato</h3><p>L’accesso è riservato a utenti autenticati e autorizzati presenti in <strong>Authentication</strong> e nella tabella <strong>admin_utenti</strong>.</p></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <div id="editModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card form-modal">
+      <div class="modal-header">
+        <h3>Modifica segnalazione</h3>
+        <button id="btnCloseEditModal" class="btn btn-light" type="button">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editSegnalazioneForm" class="form-segnalazione">
+          <input type="hidden" id="editId">
+          <input type="hidden" id="editFoto1Esistente">
+          <input type="hidden" id="editFoto2Esistente">
+          <input type="hidden" id="editFoto3Esistente">
+
+          <label class="field">
+            <span>Codice</span>
+            <input id="editCodice" type="text" readonly>
+          </label>
+
+          <label class="field">
+            <span>Titolo</span>
+            <input id="editTitolo" type="text">
+          </label>
+
+          <label class="field">
+            <span>Comune</span>
+            <input id="editComune" type="text">
+          </label>
+
+          <label class="field">
+            <span>Categoria</span>
+            <input id="editCategoria" type="text">
+          </label>
+
+          <label class="field">
+            <span>Luogo</span>
+            <input id="editLuogo" type="text">
+          </label>
+
+          <label class="field">
+            <span>Descrizione</span>
+            <textarea id="editDescrizione" rows="4"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Stato accessibilità</span>
+            <select id="editStatus">
+              <option value="rosso">🔴 Rosso</option>
+              <option value="arancione">🟠 Arancione</option>
+              <option value="verde">🟢 Verde</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Workflow</span>
+            <select id="editWorkflow">
+              <option value="nuova">Nuova</option>
+              <option value="presa in carico">Presa in carico</option>
+              <option value="chiusa">Chiusa</option>
+            </select>
+          </label>
+
+          <div class="field">
+            <span>Foto attuali</span>
+            <div class="foto-preview-grid">
+              <div class="foto-preview-card">
+                <span class="foto-label">Foto 1</span>
+                <div id="previewFoto1Wrap"></div>
+              </div>
+              <div class="foto-preview-card">
+                <span class="foto-label">Foto 2</span>
+                <div id="previewFoto2Wrap"></div>
+              </div>
+              <div class="foto-preview-card">
+                <span class="foto-label">Foto 3</span>
+                <div id="previewFoto3Wrap"></div>
+              </div>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Foto 1 - Scatta foto</span>
+            <input id="editFoto1Camera" type="file" accept="image/*" capture="environment">
+          </label>
+
+          <label class="field">
+            <span>Foto 1 - Scegli da galleria</span>
+            <input id="editFoto1Gallery" type="file" accept="image/*">
+          </label>
+
+          <label class="field">
+            <span>Foto 2 - Scatta foto</span>
+            <input id="editFoto2Camera" type="file" accept="image/*" capture="environment">
+          </label>
+
+          <label class="field">
+            <span>Foto 2 - Scegli da galleria</span>
+            <input id="editFoto2Gallery" type="file" accept="image/*">
+          </label>
+
+          <label class="field">
+            <span>Foto 3 - Scatta foto</span>
+            <input id="editFoto3Camera" type="file" accept="image/*" capture="environment">
+          </label>
+
+          <label class="field">
+            <span>Foto 3 - Scegli da galleria</span>
+            <input id="editFoto3Gallery" type="file" accept="image/*">
+          </label>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Salva modifiche</button>
+            <button id="btnCloseEditModalFooter" class="btn btn-light" type="button">Chiudi</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://gdjiiezkakesflqdzbzg.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_RR1ISiA2MhwhRrP6gXiVMg_YdE5n805";
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let rowsCache = [];
+    let charts = [];
+    let lastReportHtml = "";
+    let lastReportText = "";
+    let currentUserRole = "operatore";
+    let currentUserEmail = "";
+
+    const loginSection = document.getElementById("loginSection");
+    const appSection = document.getElementById("appSection");
+    const loginMsg = document.getElementById("loginMsg");
+    const adminMsg = document.getElementById("adminMsg");
+    const roleBadge = document.getElementById("roleBadge");
+
+    const btnLogin = document.getElementById("btnLogin");
+    const btnRefresh = document.getElementById("btnRefresh");
+    const btnRefreshTop = document.getElementById("btnRefreshTop");
+    const btnLogoutSide = document.getElementById("btnLogoutSide");
+    const btnLogoutTop = document.getElementById("btnLogoutTop");
+    const btnExportCsv = document.getElementById("btnExportCsv");
+    const btnExportXlsx = document.getElementById("btnExportXlsx");
+    const btnBuildChartsFiltered = document.getElementById("btnBuildChartsFiltered");
+    const btnBuildChartsAll = document.getElementById("btnBuildChartsAll");
+    const btnBuildReportFiltered = document.getElementById("btnBuildReportFiltered");
+    const btnBuildReportAll = document.getElementById("btnBuildReportAll");
+    const btnPrintReport = document.getElementById("btnPrintReport");
+    const btnExportReportHtml = document.getElementById("btnExportReportHtml");
+    const btnExportReportTxt = document.getElementById("btnExportReportTxt");
+    const btnPrintPage = document.getElementById("btnPrintPage");
+    const btnResetFilters = document.getElementById("btnResetFilters");
+
+    const btnHideFiltered = document.getElementById("btnHideFiltered");
+    const btnArchiveFiltered = document.getElementById("btnArchiveFiltered");
+    const btnRestoreFiltered = document.getElementById("btnRestoreFiltered");
+    const btnDeleteFiltered = document.getElementById("btnDeleteFiltered");
+
+    const searchText = document.getElementById("searchText");
+    const filterComune = document.getElementById("filterComune");
+    const filterStatus = document.getElementById("filterStatus");
+    const filterWorkflow = document.getElementById("filterWorkflow");
+    const filterVisibilita = document.getElementById("filterVisibilita");
+    const filterArchivio = document.getElementById("filterArchivio");
+
+    const cardsGrid = document.getElementById("cardsGrid");
+    const resultsCount = document.getElementById("resultsCount");
+    const chartsWrap = document.getElementById("chartsWrap");
+    const chartsEmpty = document.getElementById("chartsEmpty");
+    const chartBaseInfo = document.getElementById("chartBaseInfo");
+    const reportBaseInfo = document.getElementById("reportBaseInfo");
+    const reportOutput = document.getElementById("reportOutput");
+
+    const editModal = document.getElementById("editModal");
+    const btnCloseEditModal = document.getElementById("btnCloseEditModal");
+    const btnCloseEditModalFooter = document.getElementById("btnCloseEditModalFooter");
+    const editSegnalazioneForm = document.getElementById("editSegnalazioneForm");
+    const editId = document.getElementById("editId");
+    const editCodice = document.getElementById("editCodice");
+    const editTitolo = document.getElementById("editTitolo");
+    const editComune = document.getElementById("editComune");
+    const editCategoria = document.getElementById("editCategoria");
+    const editLuogo = document.getElementById("editLuogo");
+    const editDescrizione = document.getElementById("editDescrizione");
+    const editStatus = document.getElementById("editStatus");
+    const editWorkflow = document.getElementById("editWorkflow");
+
+    const editFoto1Esistente = document.getElementById("editFoto1Esistente");
+    const editFoto2Esistente = document.getElementById("editFoto2Esistente");
+    const editFoto3Esistente = document.getElementById("editFoto3Esistente");
+
+    const editFoto1Camera = document.getElementById("editFoto1Camera");
+    const editFoto1Gallery = document.getElementById("editFoto1Gallery");
+    const editFoto2Camera = document.getElementById("editFoto2Camera");
+    const editFoto2Gallery = document.getElementById("editFoto2Gallery");
+    const editFoto3Camera = document.getElementById("editFoto3Camera");
+    const editFoto3Gallery = document.getElementById("editFoto3Gallery");
+
+    const previewFoto1Wrap = document.getElementById("previewFoto1Wrap");
+    const previewFoto2Wrap = document.getElementById("previewFoto2Wrap");
+    const previewFoto3Wrap = document.getElementById("previewFoto3Wrap");
+
+    function normalizeText(value){ return (value ?? "").toString().trim(); }
+
+    function normalizeDisplayText(value){
+      const cleaned = normalizeText(value).replace(/\s+/g, " ").replace(/\.+$/, "").trim();
+      if(!cleaned) return "";
+      return cleaned.toLowerCase().split(" ").map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : "").join(" ");
+    }
+
+    function cleanComuneValue(value){
+      const raw = normalizeText(value).toLowerCase();
+      if(!raw) return "";
+      if(raw.includes("san cataldo")) return "San Cataldo";
+      if(raw.includes("caltanissetta")) return "Caltanissetta";
+      return normalizeDisplayText(value);
+    }
+
+    function cleanCategoriaValue(value){
+      const v = normalizeDisplayText(value).toLowerCase();
+      if(!v) return "";
+      if(v.includes("parcheggio")) return "Parcheggio disabili";
+      if(v.includes("rampa")) return "Rampa";
+      if(v.includes("farmacia")) return "Farmacia";
+      if(v.includes("scuola")) return "Scuola";
+      if(v.includes("comune")) return "Comune";
+      if(v.includes("barriera")) return "Barriera architettonica";
+      if(v.includes("percorso")) return "Percorso pedonale";
+      if(v.includes("ingresso")) return "Ingresso edificio";
+      if(v.includes("spazio")) return "Spazio pubblico";
+      if(v.includes("altro")) return "Altro";
+      return normalizeDisplayText(value);
+    }
+
+    function cleanLuogoValue(value){
+      const cleaned = normalizeDisplayText(value);
+      if(!cleaned) return "";
+      if(cleaned.length < 3) return "";
+      if(/^[0-9\s\-]+$/.test(cleaned)) return "";
+      if(cleaned.toLowerCase().includes("undefined")) return "";
+      if(cleaned.toLowerCase().includes("null")) return "";
+      return cleaned;
+    }
+
+    function getField(row, ...keys){
+      for(const key of keys){
+        if(row[key] !== undefined && row[key] !== null) return row[key];
+      }
+      return "";
+    }
+
+    function normalizeWorkflowValue(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "nuova") return "nuova";
+      if(v === "presa in carico") return "presa in carico";
+      if(v === "chiusa") return "chiusa";
+      return "";
+    }
+
+    function normalizeVisibilityValue(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "nascosta") return "nascosta";
+      return "pubblica";
+    }
+
+    function normalizeArchiveValue(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "archiviata") return "archiviata";
+      return "attiva";
+    }
+
+    function normalizeRole(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "admin" || v === "superadmin") return "admin";
+      return "operatore";
+    }
+
+    function isAdmin(){ return currentUserRole === "admin"; }
+
+    function fotoPublicUrl(nomeFile){
+      if(!nomeFile) return "";
+      const { data } = client.storage.from("foto").getPublicUrl(nomeFile);
+      return data?.publicUrl || "";
+    }
+
+    function setMsg(el, text, type = ""){
+      el.textContent = text || "";
+      el.className = "msg";
+      if(type) el.classList.add(type);
+    }
+
+    function setAdminMessage(text, type = ""){
+      setMsg(adminMsg, text, type);
+      if(text){
+        setTimeout(() => {
+          if(adminMsg.textContent === text) setMsg(adminMsg, "");
+        }, 2600);
+      }
+    }
+
+    function showApp(){
+      loginSection.classList.add("hidden");
+      appSection.classList.remove("hidden");
+    }
+
+    function hideApp(){
+      loginSection.classList.remove("hidden");
+      appSection.classList.add("hidden");
+    }
+
+    function refreshRoleUi(){
+      if(roleBadge){
+        roleBadge.textContent = `Ruolo: ${currentUserRole}`;
+      }
+      if(btnDeleteFiltered){
+        btnDeleteFiltered.style.display = isAdmin() ? "inline-flex" : "none";
+      }
+    }
+
+    async function writeLog(azione, segnalazioneId = null, dettagli = ""){
+      try{
+        const payload = {
+          segnalazione_id: segnalazioneId,
+          azione: azione,
+          utente_email: currentUserEmail || null,
+          ruolo: currentUserRole || "operatore",
+          dettagli: dettagli || null
+        };
+
+        const { error } = await client.from("segnalazioni_log").insert([payload]);
+        if(error){
+          console.warn("Log non salvato:", error.message);
+        }
+      }catch(err){
+        console.warn("Errore scrittura log:", err);
+      }
+    }
+
+    function getStateBadgeClass(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "rosso") return "state-badge state-red";
+      if(v === "arancione") return "state-badge state-orange";
+      if(v === "verde") return "state-badge state-green";
+      return "state-badge state-default";
+    }
+
+    function getWorkflowBadgeClass(value){
+      const v = normalizeText(value).toLowerCase();
+      if(v === "chiusa") return "workflow-badge wf-closed";
+      if(v === "presa in carico") return "workflow-badge wf-progress";
+      return "workflow-badge wf-new";
+    }
+
+    function getVisibilityBadgeClass(value){
+      const v = normalizeVisibilityValue(value);
+      return v === "nascosta" ? "visibility-badge visibility-hidden" : "visibility-badge visibility-public";
+    }
+
+    function getArchiveBadgeClass(value){
+      const v = normalizeArchiveValue(value);
+      return v === "archiviata" ? "archive-badge archive-archived" : "archive-badge archive-active";
+    }
+
+    function rowToPoint(row){
+      return {
+        id: row.id,
+        codice: getField(row, "codice", "Codice"),
+        title: normalizeDisplayText(getField(row, "Titolo", "titolo")),
+        comune: cleanComuneValue(getField(row, "Comune", "comune")),
+        categoria: cleanCategoriaValue(getField(row, "Categoria", "categoria")),
+        luogo: cleanLuogoValue(getField(row, "Luogo", "luogo")),
+        description: normalizeText(getField(row, "Descrizione", "descrizione")),
+        status: normalizeText(getField(row, "Stato", "stato")).toLowerCase(),
+        workflow: normalizeWorkflowValue(getField(row, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione")) || "nuova",
+        visibilita: normalizeVisibilityValue(getField(row, "visibilita", "Visibilita")),
+        statoArchivio: normalizeArchiveValue(getField(row, "stato_archivio", "StatoArchivio")),
+        foto1: getField(row, "foto1"),
+        foto2: getField(row, "foto2"),
+        foto3: getField(row, "foto3")
+      };
+    }
+
+    function renderFotoPreview(container, nomeFile){
+      if(!container) return;
+
+      if(nomeFile){
+        const url = fotoPublicUrl(nomeFile);
+        container.innerHTML = `<img src="${url}" alt="Anteprima foto">`;
+      }else{
+        container.innerHTML = `<div class="foto-empty">Nessuna foto presente</div>`;
+      }
+    }
+
+    function clearOtherFileInput(activeInput, otherInput){
+      if(!activeInput || !otherInput) return;
+
+      activeInput.addEventListener("change", () => {
+        if(activeInput.files && activeInput.files.length > 0){
+          otherInput.value = "";
+        }
+      });
+    }
+
+    function getSelectedFile(primaryInput, secondaryInput){
+      if(primaryInput?.files?.length > 0) return primaryInput.files[0];
+      if(secondaryInput?.files?.length > 0) return secondaryInput.files[0];
+      return null;
+    }
+
+    function resetEditPhotoInputs(){
+      [
+        editFoto1Camera,
+        editFoto1Gallery,
+        editFoto2Camera,
+        editFoto2Gallery,
+        editFoto3Camera,
+        editFoto3Gallery
+      ].forEach((input) => {
+        if(input) input.value = "";
+      });
+    }
+
+    clearOtherFileInput(editFoto1Camera, editFoto1Gallery);
+    clearOtherFileInput(editFoto1Gallery, editFoto1Camera);
+    clearOtherFileInput(editFoto2Camera, editFoto2Gallery);
+    clearOtherFileInput(editFoto2Gallery, editFoto2Camera);
+    clearOtherFileInput(editFoto3Camera, editFoto3Gallery);
+    clearOtherFileInput(editFoto3Gallery, editFoto3Camera);
+
+    async function uploadSinglePhoto(file){
+      if(!file) return null;
+
+      const safeName = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+      const { error } = await client.storage.from("foto").upload(safeName, file, { upsert:false });
+
+      if(error){
+        console.error(error);
+        throw new Error("Errore caricamento foto.");
+      }
+
+      return safeName;
+    }
+
+    async function getAdminProfile(){
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if(authError) return null;
+      const user = authData?.user;
+      const userEmail = normalizeText(user?.email).toLowerCase();
+      if(!userEmail) return null;
+
+      const { data, error } = await client
+        .from("admin_utenti")
+        .select("email, attivo, ruolo")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if(error || !data || data.attivo === false) return null;
+
+      return {
+        email: normalizeText(data.email).toLowerCase(),
+        ruolo: normalizeRole(data.ruolo)
+      };
+    }
+
+    async function isAdminUser(){
+      const profile = await getAdminProfile();
+      return !!profile;
+    }
+
+    async function loadCurrentRole(){
+      const profile = await getAdminProfile();
+      currentUserRole = profile ? profile.ruolo : "operatore";
+      currentUserEmail = profile ? profile.email : "";
+      refreshRoleUi();
+    }
+
+    async function login(){
+      const email = normalizeText(document.getElementById("email").value).toLowerCase();
+      const password = document.getElementById("password").value;
+      if(!email || !password){
+        setMsg(loginMsg, "Inserisci email e password.", "error");
+        return;
+      }
+      setMsg(loginMsg, "Accesso in corso...");
+
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if(error){
+        setMsg(loginMsg, "Login non riuscito: " + error.message, "error");
+        return;
+      }
+
+      const admin = await isAdminUser();
+      if(!admin){
+        await client.auth.signOut();
+        sessionStorage.removeItem("adminLogged");
+        setMsg(loginMsg, "Utente non autorizzato.", "error");
+        return;
+      }
+
+      sessionStorage.setItem("adminLogged", "true");
+      setMsg(loginMsg, "");
+      await loadCurrentRole();
+      await writeLog("login", null, "Accesso al pannello operatori");
+      showApp();
+      await loadData();
+    }
+
+    async function checkSession(){
+      const remember = sessionStorage.getItem("adminLogged");
+      if(remember !== "true"){
+        await client.auth.signOut();
+        return;
+      }
+
+      const { data } = await client.auth.getSession();
+      if(data?.session?.user){
+        const admin = await isAdminUser();
+        if(admin){
+          await loadCurrentRole();
+          showApp();
+          await loadData();
+        }else{
+          await client.auth.signOut();
+          sessionStorage.removeItem("adminLogged");
+        }
+      }
+    }
+
+    async function logout(){
+      await writeLog("logout", null, "Uscita dal pannello operatori");
+      await client.auth.signOut();
+      sessionStorage.removeItem("adminLogged");
+      rowsCache = [];
+      charts = [];
+      lastReportHtml = "";
+      lastReportText = "";
+      currentUserRole = "operatore";
+      currentUserEmail = "";
+      refreshRoleUi();
+      cardsGrid.innerHTML = "";
+      hideApp();
+      setMsg(loginMsg, "");
+      setAdminMessage("");
+      reportOutput.textContent = "Nessun report generato.";
+      reportBaseInfo.textContent = "Nessun report generato";
+      chartBaseInfo.textContent = "Base analisi non ancora generata";
+      chartsWrap.classList.add("hidden");
+      chartsEmpty.classList.remove("hidden");
+      closeEditModal();
+    }
+
+    function getFilteredRows(){
+      const q = normalizeText(searchText.value).toLowerCase();
+      const comune = filterComune.value;
+      const status = filterStatus.value;
+      const workflow = filterWorkflow.value;
+      const visibilita = filterVisibilita.value;
+      const archivio = filterArchivio.value;
+
+      return rowsCache.filter(row => {
+        const titolo = normalizeDisplayText(getField(row, "Titolo", "titolo"));
+        const luogo = cleanLuogoValue(getField(row, "Luogo", "luogo"));
+        const descrizione = normalizeText(getField(row, "Descrizione", "descrizione"));
+        const comuneRow = cleanComuneValue(getField(row, "Comune", "comune"));
+        const codice = getField(row, "codice", "Codice");
+        const stato = normalizeText(getField(row, "Stato", "stato")).toLowerCase();
+        const wf = normalizeWorkflowValue(getField(row, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione"));
+        const vis = normalizeVisibilityValue(getField(row, "visibilita", "Visibilita"));
+        const arc = normalizeArchiveValue(getField(row, "stato_archivio", "StatoArchivio"));
+        const haystack = `${codice} ${titolo} ${luogo} ${descrizione} ${comuneRow}`.toLowerCase();
+
+        return (!q || haystack.includes(q))
+          && (comune === "tutti" || comuneRow === comune)
+          && (status === "tutti" || stato === status)
+          && (workflow === "tutti" || wf === workflow)
+          && (visibilita === "tutti" || vis === visibilita)
+          && (archivio === "tutti" || arc === archivio);
+      });
+    }
+
+    function getFilteredIds(){
+      return getFilteredRows().map(r => r.id).filter(Boolean);
+    }
+
+    function formatDate(value){
+      if(!value) return "—";
+      try{ return new Date(value).toLocaleString("it-IT"); }
+      catch { return value; }
+    }
+
+    function updateStats(rows){
+      const stato = r => normalizeText(getField(r, "Stato", "stato")).toLowerCase();
+      const vis = r => normalizeVisibilityValue(getField(r, "visibilita", "Visibilita"));
+      const arc = r => normalizeArchiveValue(getField(r, "stato_archivio", "StatoArchivio"));
+
+      document.getElementById("statTotale").textContent = rows.length;
+      document.getElementById("statRosso").textContent = rows.filter(r => stato(r) === "rosso").length;
+      document.getElementById("statArancione").textContent = rows.filter(r => stato(r) === "arancione").length;
+      document.getElementById("statVerde").textContent = rows.filter(r => stato(r) === "verde").length;
+      document.getElementById("statPubbliche").textContent = rows.filter(r => vis(r) === "pubblica").length;
+      document.getElementById("statNascoste").textContent = rows.filter(r => vis(r) === "nascosta").length;
+      document.getElementById("statAttive").textContent = rows.filter(r => arc(r) === "attiva").length;
+      document.getElementById("statArchiviate").textContent = rows.filter(r => arc(r) === "archiviata").length;
+    }
+
+    function openEditModal(point){
+      editId.value = point.id;
+      editCodice.value = point.codice || "";
+      editTitolo.value = point.title || "";
+      editComune.value = point.comune || "";
+      editCategoria.value = point.categoria || "";
+      editLuogo.value = point.luogo || "";
+      editDescrizione.value = point.description || "";
+      editStatus.value = point.status || "rosso";
+      editWorkflow.value = point.workflow || "nuova";
+
+      editFoto1Esistente.value = point.foto1 || "";
+      editFoto2Esistente.value = point.foto2 || "";
+      editFoto3Esistente.value = point.foto3 || "";
+
+      renderFotoPreview(previewFoto1Wrap, point.foto1 || "");
+      renderFotoPreview(previewFoto2Wrap, point.foto2 || "");
+      renderFotoPreview(previewFoto3Wrap, point.foto3 || "");
+
+      resetEditPhotoInputs();
+
+      editModal.classList.remove("hidden");
+      editModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeEditModal(){
+      editModal.classList.add("hidden");
+      editModal.setAttribute("aria-hidden", "true");
+      resetEditPhotoInputs();
+    }
+
+    function renderCards(){
+      const rows = getFilteredRows();
+      resultsCount.textContent = `${rows.length} schede mostrate`;
+      cardsGrid.innerHTML = "";
+
+      if(!rows.length){
+        cardsGrid.innerHTML = `<div class="empty-state">Nessuna segnalazione trovata con i filtri attuali.</div>`;
+        return;
+      }
+
+      rows.forEach(row => {
+        const point = rowToPoint(row);
+        const id = row.id;
+        const codice = point.codice;
+        const titolo = point.title;
+        const comune = point.comune;
+        const categoria = point.categoria;
+        const stato = point.status;
+        const workflow = point.workflow;
+        const visibilita = point.visibilita;
+        const archivio = point.statoArchivio;
+        const luogo = point.luogo;
+        const descrizione = point.description;
+        const nomeSegnalante = normalizeDisplayText(getField(row, "nomesegnalante", "NomeSegnalante"));
+        const contattoSegnalante = normalizeText(getField(row, "contattosegnalante", "ContattoSegnalante"));
+        const createdAt = getField(row, "created_at", "creato_il");
+        const updatedAt = getField(row, "updated_at", "aggiornato_alle");
+
+        const deleteButtonHtml = isAdmin()
+          ? `<button class="btn btn-danger btn-small" data-delete-id="${id}" type="button">Elimina definitiva</button>`
+          : "";
+
+        const hideLabel = visibilita === "pubblica" ? "Nascondi" : "Rendi pubblica";
+        const archiveLabel = archivio === "attiva" ? "Archivia" : "Ripristina";
+
+        const card = document.createElement("article");
+        card.className = "report-card";
+        card.innerHTML = `
+          <div class="report-head">
+            <div class="report-code">ID ${id}${codice ? ` • ${codice}` : ""}</div>
+            <h3 class="report-title">${titolo || "Segnalazione senza titolo"}</h3>
+            <div class="report-badges">
+              <span class="${getStateBadgeClass(stato)}">${stato || "Non definito"}</span>
+              <span class="${getWorkflowBadgeClass(workflow)}">${workflow}</span>
+              <span class="${getVisibilityBadgeClass(visibilita)}">Visibilità: ${visibilita}</span>
+              <span class="${getArchiveBadgeClass(archivio)}">Archivio: ${archivio}</span>
+            </div>
+          </div>
+          <div class="report-body">
+            <div class="info-box"><span class="info-label">Comune</span><div class="info-value">${comune || "—"}</div></div>
+            <div class="info-box"><span class="info-label">Categoria</span><div class="info-value">${categoria || "—"}</div></div>
+            <div class="info-box"><span class="info-label">Luogo</span><div class="info-value">${luogo || "—"}</div></div>
+            <div class="info-box"><span class="info-label">Contatto segnalante</span><div class="info-value">${contattoSegnalante || "—"}</div></div>
+            <div class="info-box"><span class="info-label">Segnalante</span><div class="info-value">${nomeSegnalante || "—"}</div></div>
+            <div class="info-box"><span class="info-label">Creato il</span><div class="info-value">${formatDate(createdAt)}</div></div>
+            <div class="info-box"><span class="info-label">Aggiornato il</span><div class="info-value">${formatDate(updatedAt)}</div></div>
+            <div class="info-box"><span class="info-label">Visibilità</span><div class="info-value">${visibilita}</div></div>
+            <div class="info-box"><span class="info-label">Archivio</span><div class="info-value">${archivio}</div></div>
+            <div class="info-box desc-box"><span class="info-label">Descrizione</span><div class="info-value">${descrizione || "Nessuna descrizione disponibile."}</div></div>
+          </div>
+          <div class="report-footer">
+            <div class="workflow-editor">
+              <label for="workflow-${id}">Aggiorna workflow</label>
+              <select class="workflow-select" id="workflow-${id}" data-workflow-id="${id}">
+                <option value="nuova" ${workflow === "nuova" ? "selected" : ""}>Nuova</option>
+                <option value="presa in carico" ${workflow === "presa in carico" ? "selected" : ""}>Presa in carico</option>
+                <option value="chiusa" ${workflow === "chiusa" ? "selected" : ""}>Chiusa</option>
+              </select>
+            </div>
+            <div class="actions no-print">
+              <button class="btn btn-primary btn-small" data-edit-id="${id}" type="button">Modifica scheda</button>
+              <button class="btn btn-light btn-small" data-save-id="${id}" type="button">Salva workflow</button>
+              <button class="btn btn-hide btn-small" data-hide-id="${id}" type="button">${hideLabel}</button>
+              <button class="btn btn-archive btn-small" data-archive-id="${id}" type="button">${archiveLabel}</button>
+              ${deleteButtonHtml}
+            </div>
+          </div>`;
+        cardsGrid.appendChild(card);
+
+        const editBtn = card.querySelector(`[data-edit-id="${id}"]`);
+        if(editBtn){
+          editBtn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            openEditModal(point);
+          });
+        }
+      });
+    }
+
+    function destroyCharts(){ charts.forEach(chart => chart.destroy()); charts = []; }
+
+    function buildCharts(rows, label){
+      if(!rows.length){ alert("Nessun dato disponibile per generare i grafici."); return; }
+      destroyCharts();
+      chartsEmpty.classList.add("hidden");
+      chartsWrap.classList.remove("hidden");
+      chartBaseInfo.textContent = `Base analisi: ${rows.length} segnalazioni (${label})`;
+
+      const statusMap = {
+        Rosso: rows.filter(r => normalizeText(getField(r, "Stato", "stato")).toLowerCase() === "rosso").length,
+        Arancione: rows.filter(r => normalizeText(getField(r, "Stato", "stato")).toLowerCase() === "arancione").length,
+        Verde: rows.filter(r => normalizeText(getField(r, "Stato", "stato")).toLowerCase() === "verde").length
+      };
+      const workflowMap = {
+        Nuova: rows.filter(r => normalizeWorkflowValue(getField(r, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione")) === "nuova").length,
+        "Presa in carico": rows.filter(r => normalizeWorkflowValue(getField(r, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione")) === "presa in carico").length,
+        Chiusa: rows.filter(r => normalizeWorkflowValue(getField(r, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione")) === "chiusa").length
+      };
+
+      charts.push(new Chart(document.getElementById("chartStatus"), {
+        type:"doughnut",
+        data:{ labels:Object.keys(statusMap), datasets:[{ data:Object.values(statusMap), backgroundColor:["#ef4444","#f59e0b","#10b981"] }] },
+        options:{ responsive:true, maintainAspectRatio:false }
+      }));
+
+      charts.push(new Chart(document.getElementById("chartWorkflow"), {
+        type:"bar",
+        data:{ labels:Object.keys(workflowMap), datasets:[{ label:"Segnalazioni", data:Object.values(workflowMap), backgroundColor:["#3b82f6","#f59e0b","#10b981"] }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+      }));
+      setAdminMessage("Grafici generati correttamente.", "ok");
+    }
+
+    function buildReport(rows, label){
+      if(!rows.length){ alert("Nessun dato disponibile per generare il report."); return; }
+      const lines = [];
+      lines.push("REPORT OPERATORI - MAPPA ACCESSIBILITÀ");
+      lines.push("NessunOstacolo");
+      lines.push("");
+      lines.push(`Base report: ${label}`);
+      lines.push(`Numero segnalazioni: ${rows.length}`);
+      lines.push("");
+
+      rows.forEach((row, index) => {
+        lines.push(`Scheda ${index + 1}`);
+        lines.push(`ID: ${row.id}`);
+        lines.push(`Titolo: ${normalizeDisplayText(getField(row, "Titolo", "titolo")) || "—"}`);
+        lines.push(`Comune: ${cleanComuneValue(getField(row, "Comune", "comune")) || "—"}`);
+        lines.push(`Categoria: ${cleanCategoriaValue(getField(row, "Categoria", "categoria")) || "—"}`);
+        lines.push(`Luogo: ${cleanLuogoValue(getField(row, "Luogo", "luogo")) || "—"}`);
+        lines.push(`Stato: ${getField(row, "Stato", "stato") || "—"}`);
+        lines.push(`Workflow: ${normalizeWorkflowValue(getField(row, "statosegnalazione", "StatoSegnalazione", "stato_segnalazione")) || "—"}`);
+        lines.push(`Visibilità: ${normalizeVisibilityValue(getField(row, "visibilita", "Visibilita"))}`);
+        lines.push(`Archivio: ${normalizeArchiveValue(getField(row, "stato_archivio", "StatoArchivio"))}`);
+        lines.push(`Creato il: ${formatDate(getField(row, "created_at", "creato_il"))}`);
+        lines.push(`Aggiornato il: ${formatDate(getField(row, "updated_at", "aggiornato_alle"))}`);
+        lines.push(`Descrizione: ${normalizeText(getField(row, "Descrizione", "descrizione")) || "—"}`);
+        lines.push("");
+      });
+
+      const text = lines.join("\n");
+      const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Report operatori - Mappa Accessibilità</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:40px;color:#111;line-height:1.6}header{display:flex;align-items:center;gap:16px;margin-bottom:24px}header img{width:72px;height:72px;object-fit:contain}h1{color:#1f4b7a;margin:0}p{margin:0}pre{white-space:pre-wrap}</style></head><body><header><img src="assets/logo-mappa.png" alt="Logo Mappa Accessibilità"><div><h1>Mappa Accessibilità - NessunOstacolo</h1><p>Area riservata operatori</p></div></header><pre>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre></body></html>`;
+      lastReportText = text;
+      lastReportHtml = html;
+      reportOutput.textContent = text;
+      reportBaseInfo.textContent = `Base report: ${rows.length} segnalazioni (${label})`;
+      setAdminMessage("Report generato correttamente.", "ok");
+    }
+
+    function exportFile(filename, content, mimeType){
+      const blob = new Blob([content], { type:mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function loadData(){
+      const { data, error } = await client.from("segnalazioni").select("*").order("id", { ascending:true });
+      if(error){ alert("Errore caricamento dati: " + error.message); return; }
+      rowsCache = data || [];
+      updateStats(rowsCache);
+      renderCards();
+      destroyCharts();
+      chartsWrap.classList.add("hidden");
+      chartsEmpty.classList.remove("hidden");
+      chartBaseInfo.textContent = "Base analisi non ancora generata";
+    }
+
+    function resetFilters(){
+      searchText.value = "";
+      filterComune.value = "tutti";
+      filterStatus.value = "tutti";
+      filterWorkflow.value = "tutti";
+      filterVisibilita.value = "tutti";
+      filterArchivio.value = "tutti";
+      renderCards();
+      setAdminMessage("Filtri azzerati.", "ok");
+    }
+
+    function exportCSV(){
+      const rows = getFilteredRows();
+      if(!rows.length){ alert("Nessun dato da esportare"); return; }
+      const headers = Object.keys(rows[0]);
+      const csv = [headers.join(","), ...rows.map(row => headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+      exportFile("segnalazioni-mappa.csv", csv, "text/csv;charset=utf-8;");
+    }
+
+    function exportXLSX(){
+      const rows = getFilteredRows();
+      if(!rows.length){ alert("Nessun dato da esportare"); return; }
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Segnalazioni");
+      XLSX.writeFile(workbook, "segnalazioni-mappa.xlsx");
+    }
+
+    function printReport(){
+      if(!lastReportHtml){ alert("Genera prima un report."); return; }
+      const w = window.open("", "_blank");
+      w.document.open();
+      w.document.write(lastReportHtml);
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+
+    function switchSection(sectionId){
+      document.querySelectorAll(".app-section").forEach(sec => sec.classList.add("hidden"));
+      document.getElementById(sectionId).classList.remove("hidden");
+      document.querySelectorAll(".menu-btn").forEach(btn => btn.classList.remove("active"));
+      document.querySelector(`.menu-btn[data-section="${sectionId}"]`).classList.add("active");
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    async function updateWorkflow(id, nuovoWorkflow){
+      const { error } = await client.from("segnalazioni").update({ statosegnalazione: nuovoWorkflow }).eq("id", id);
+      if(error){ setAdminMessage("Errore nel salvataggio workflow.", "error"); return false; }
+      await writeLog("workflow_update", id, `Nuovo workflow: ${nuovoWorkflow}`);
+      setAdminMessage("Workflow aggiornato correttamente.", "ok");
+      return true;
+    }
+
+    async function hideSegnalazione(id){
+      const currentRow = rowsCache.find(r => Number(r.id) === Number(id));
+      const currentVis = normalizeVisibilityValue(getField(currentRow || {}, "visibilita", "Visibilita"));
+      const nextVis = currentVis === "pubblica" ? "nascosta" : "pubblica";
+
+      const { error } = await client.from("segnalazioni").update({ visibilita: nextVis }).eq("id", id);
+      if(error){ setAdminMessage("Errore durante il cambio visibilità.", "error"); return false; }
+      await writeLog("visibilita_update", id, `Visibilità impostata a ${nextVis}`);
+      return true;
+    }
+
+    async function archiveSegnalazione(id){
+      const currentRow = rowsCache.find(r => Number(r.id) === Number(id));
+      const currentArc = normalizeArchiveValue(getField(currentRow || {}, "stato_archivio", "StatoArchivio"));
+
+      let payload;
+      let dettaglio;
+
+      if(currentArc === "attiva"){
+        payload = { stato_archivio: "archiviata", visibilita: "nascosta" };
+        dettaglio = "Archivio=archiviata, visibilità=nascosta";
+      }else{
+        payload = { stato_archivio: "attiva", visibilita: "pubblica" };
+        dettaglio = "Archivio=attiva, visibilità=pubblica";
+      }
+
+      const { error } = await client.from("segnalazioni").update(payload).eq("id", id);
+      if(error){ setAdminMessage("Errore durante l'archiviazione/ripristino.", "error"); return false; }
+      await writeLog("archivio_update", id, dettaglio);
+      return true;
+    }
+
+    async function restoreSegnalazione(id){
+      const { error } = await client.from("segnalazioni").update({
+        stato_archivio: "attiva",
+        visibilita: "pubblica"
+      }).eq("id", id);
+
+      if(error){ setAdminMessage("Errore durante il ripristino.", "error"); return false; }
+      await writeLog("ripristina", id, "Archivio=attiva, visibilità=pubblica");
+      return true;
+    }
+
+    async function deleteSegnalazione(id){
+      if(!isAdmin()){
+        setAdminMessage("Solo un admin può eliminare definitivamente.", "error");
+        return false;
+      }
+
+      const row = rowsCache.find(r => Number(r.id) === Number(id));
+      const filesToDelete = [
+        getField(row || {}, "foto1"),
+        getField(row || {}, "foto2"),
+        getField(row || {}, "foto3")
+      ].filter(Boolean);
+
+      const { error } = await client.from("segnalazioni").delete().eq("id", id);
+      if(error){ setAdminMessage("Errore durante eliminazione definitiva.", "error"); return false; }
+
+      if(filesToDelete.length > 0){
+        await client.storage.from("foto").remove(filesToDelete);
+      }
+
+      await writeLog("elimina_definitiva", id, "Segnalazione eliminata definitivamente");
+      return true;
+    }
+
+    async function bulkHideFiltered(){
+      const ids = getFilteredIds();
+      if(!ids.length){ alert("Non ci sono segnalazioni filtrate da nascondere."); return; }
+      const conferma = confirm(`Vuoi cambiare visibilità a ${ids.length} segnalazioni filtrate?`);
+      if(!conferma) return;
+
+      for(const id of ids){
+        const ok = await hideSegnalazione(id);
+        if(!ok) return;
+      }
+
+      await writeLog("bulk_visibilita", null, `Cambio visibilità filtrate: ${ids.length} segnalazioni`);
+      setAdminMessage(`Visibilità aggiornata su ${ids.length} segnalazioni.`, "ok");
+      await loadData();
+    }
+
+    async function bulkArchiveFiltered(){
+      const ids = getFilteredIds();
+      if(!ids.length){ alert("Non ci sono segnalazioni filtrate da archiviare."); return; }
+      const conferma = confirm(`Vuoi archiviare ${ids.length} segnalazioni filtrate? Verranno anche nascoste.`);
+      if(!conferma) return;
+
+      for(const id of ids){
+        const currentRow = rowsCache.find(r => Number(r.id) === Number(id));
+        const currentArc = normalizeArchiveValue(getField(currentRow || {}, "stato_archivio", "StatoArchivio"));
+        if(currentArc !== "attiva") continue;
+        const ok = await archiveSegnalazione(id);
+        if(!ok) return;
+      }
+
+      await writeLog("bulk_archivia", null, `Archivia filtrate: ${ids.length} segnalazioni`);
+      setAdminMessage(`${ids.length} segnalazioni archiviate correttamente.`, "ok");
+      await loadData();
+    }
+
+    async function bulkRestoreFiltered(){
+      const ids = getFilteredIds();
+      if(!ids.length){ alert("Non ci sono segnalazioni filtrate da ripristinare."); return; }
+      const conferma = confirm(`Vuoi ripristinare ${ids.length} segnalazioni filtrate? Torneranno attive e pubbliche.`);
+      if(!conferma) return;
+
+      for(const id of ids){
+        const ok = await restoreSegnalazione(id);
+        if(!ok) return;
+      }
+
+      await writeLog("bulk_ripristina", null, `Ripristina filtrate: ${ids.length} segnalazioni`);
+      setAdminMessage(`${ids.length} segnalazioni ripristinate correttamente.`, "ok");
+      await loadData();
+    }
+
+    async function bulkDeleteFiltered(){
+      if(!isAdmin()){
+        setAdminMessage("Solo un admin può eliminare i risultati filtrati.", "error");
+        return;
+      }
+
+      const ids = getFilteredIds();
+      if(!ids.length){ alert("Non ci sono segnalazioni filtrate da eliminare."); return; }
+      const conferma = confirm(`ATTENZIONE: vuoi eliminare DEFINITIVAMENTE ${ids.length} segnalazioni filtrate? Questa azione non si può annullare.`);
+      if(!conferma) return;
+
+      const confermaFinale = confirm("Conferma finale: procedere davvero con l'eliminazione definitiva dei risultati filtrati?");
+      if(!confermaFinale) return;
+
+      for(const id of ids){
+        const ok = await deleteSegnalazione(id);
+        if(!ok) return;
+      }
+
+      await writeLog("bulk_elimina_definitiva", null, `Elimina filtrate: ${ids.length} segnalazioni`);
+      setAdminMessage(`${ids.length} segnalazioni eliminate definitivamente.`, "ok");
+      await loadData();
+    }
+
+    document.addEventListener("click", async (event) => {
+      const saveBtn = event.target.closest("[data-save-id]");
+      const hideBtn = event.target.closest("[data-hide-id]");
+      const archiveBtn = event.target.closest("[data-archive-id]");
+      const deleteBtn = event.target.closest("[data-delete-id]");
+
+      if(saveBtn){
+        const id = saveBtn.dataset.saveId;
+        const workflowSelect = document.querySelector(`[data-workflow-id="${id}"]`);
+        const nuovoWorkflow = workflowSelect.value;
+        const ok = await updateWorkflow(id, nuovoWorkflow);
+        if(ok) await loadData();
+      }
+
+      if(hideBtn){
+        const id = hideBtn.dataset.hideId;
+        const conferma = confirm("Vuoi cambiare la visibilità di questa segnalazione?");
+        if(!conferma) return;
+        const ok = await hideSegnalazione(id);
+        if(ok){
+          setAdminMessage("Visibilità aggiornata correttamente.", "ok");
+          await loadData();
+        }
+      }
+
+      if(archiveBtn){
+        const id = archiveBtn.dataset.archiveId;
+        const currentRow = rowsCache.find(r => Number(r.id) === Number(id));
+        const currentArc = normalizeArchiveValue(getField(currentRow || {}, "stato_archivio", "StatoArchivio"));
+        const messaggio = currentArc === "attiva"
+          ? "Vuoi archiviare questa segnalazione? Verrà anche nascosta dalla mappa pubblica."
+          : "Vuoi ripristinare questa segnalazione? Tornerà attiva e pubblica.";
+        const conferma = confirm(messaggio);
+        if(!conferma) return;
+        const ok = await archiveSegnalazione(id);
+        if(ok){
+          setAdminMessage("Archivio aggiornato correttamente.", "ok");
+          await loadData();
+        }
+      }
+
+      if(deleteBtn){
+        if(!isAdmin()){
+          setAdminMessage("Solo un admin può eliminare definitivamente.", "error");
+          return;
+        }
+
+        const id = deleteBtn.dataset.deleteId;
+        const conferma = confirm("Vuoi eliminare DEFINITIVAMENTE questa segnalazione? Questa azione non si può annullare.");
+        if(!conferma) return;
+        const ok = await deleteSegnalazione(id);
+        if(ok){
+          setAdminMessage("Segnalazione eliminata definitivamente.", "ok");
+          await loadData();
+        }
+      }
+    });
+
+    if(editSegnalazioneForm){
+      editSegnalazioneForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const id = Number(editId.value);
+
+        const payload = {
+          Titolo: normalizeDisplayText(editTitolo.value),
+          Comune: cleanComuneValue(editComune.value),
+          Categoria: cleanCategoriaValue(editCategoria.value),
+          Luogo: cleanLuogoValue(editLuogo.value),
+          Descrizione: normalizeText(editDescrizione.value),
+          Stato: normalizeText(editStatus.value).toLowerCase(),
+          statosegnalazione: normalizeWorkflowValue(editWorkflow.value) || "nuova"
+        };
+
+        if(!payload.Titolo){
+          alert("Inserisci un titolo valido.");
+          return;
+        }
+        if(!payload.Comune){
+          alert("Inserisci un comune valido.");
+          return;
+        }
+        if(!payload.Categoria){
+          alert("Inserisci una categoria valida.");
+          return;
+        }
+        if(!payload.Luogo){
+          alert("Inserisci un luogo valido.");
+          return;
+        }
+
+        try{
+          const fileFoto1 = getSelectedFile(editFoto1Camera, editFoto1Gallery);
+          const fileFoto2 = getSelectedFile(editFoto2Camera, editFoto2Gallery);
+          const fileFoto3 = getSelectedFile(editFoto3Camera, editFoto3Gallery);
+
+          let nuovaFoto1 = editFoto1Esistente.value || null;
+          let nuovaFoto2 = editFoto2Esistente.value || null;
+          let nuovaFoto3 = editFoto3Esistente.value || null;
+
+          if(fileFoto1){
+            nuovaFoto1 = await uploadSinglePhoto(fileFoto1);
+          }
+          if(fileFoto2){
+            nuovaFoto2 = await uploadSinglePhoto(fileFoto2);
+          }
+          if(fileFoto3){
+            nuovaFoto3 = await uploadSinglePhoto(fileFoto3);
+          }
+
+          payload.foto1 = nuovaFoto1;
+          payload.foto2 = nuovaFoto2;
+          payload.foto3 = nuovaFoto3;
+
+          const { error } = await client
+            .from("segnalazioni")
+            .update(payload)
+            .eq("id", id);
+
+          if(error){
+            alert("Errore durante il salvataggio modifiche");
+            console.error(error);
+            return;
+          }
+
+          await writeLog("modifica_scheda", id, "Modifica completa della segnalazione con gestione foto");
+          closeEditModal();
+          await loadData();
+          setAdminMessage("Modifica salvata correttamente.", "ok");
+        }catch(error){
+          alert(error.message || "Errore durante il caricamento foto.");
+          console.error(error);
+        }
+      });
+    }
+
+    if(btnCloseEditModal){
+      btnCloseEditModal.addEventListener("click", closeEditModal);
+    }
+
+    if(btnCloseEditModalFooter){
+      btnCloseEditModalFooter.addEventListener("click", closeEditModal);
+    }
+
+    if(editModal){
+      editModal.addEventListener("click", (e) => {
+        if(e.target === editModal){
+          closeEditModal();
+        }
+      });
+    }
+
+    btnLogin.onclick = login;
+    btnRefresh.onclick = loadData;
+    btnRefreshTop.onclick = loadData;
+    btnLogoutSide.onclick = logout;
+    btnLogoutTop.onclick = logout;
+
+    btnExportCsv.onclick = exportCSV;
+    btnExportXlsx.onclick = exportXLSX;
+    btnBuildChartsFiltered.onclick = () => buildCharts(getFilteredRows(), "risultati filtrati");
+    btnBuildChartsAll.onclick = () => buildCharts(rowsCache, "database completo");
+    btnBuildReportFiltered.onclick = () => buildReport(getFilteredRows(), "risultati filtrati");
+    btnBuildReportAll.onclick = () => buildReport(rowsCache, "database completo");
+    btnPrintReport.onclick = printReport;
+    btnExportReportHtml.onclick = () => {
+      if(!lastReportHtml) return alert("Genera prima un report.");
+      exportFile("report-operatori-mappa.html", lastReportHtml, "text/html;charset=utf-8;");
+    };
+    btnExportReportTxt.onclick = () => {
+      if(!lastReportText) return alert("Genera prima un report.");
+      exportFile("report-operatori-mappa.txt", lastReportText, "text/plain;charset=utf-8;");
+    };
+    btnPrintPage.onclick = () => window.print();
+    btnResetFilters.onclick = resetFilters;
+
+    btnHideFiltered.onclick = bulkHideFiltered;
+    btnArchiveFiltered.onclick = bulkArchiveFiltered;
+    btnRestoreFiltered.onclick = bulkRestoreFiltered;
+    btnDeleteFiltered.onclick = bulkDeleteFiltered;
+
+    searchText.addEventListener("input", renderCards);
+    filterComune.addEventListener("change", renderCards);
+    filterStatus.addEventListener("change", renderCards);
+    filterWorkflow.addEventListener("change", renderCards);
+    filterVisibilita.addEventListener("change", renderCards);
+    filterArchivio.addEventListener("change", renderCards);
+
+    document.querySelectorAll(".menu-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchSection(btn.dataset.section));
+    });
+
+    refreshRoleUi();
+    checkSession();
+  </script>
+</body>
+</html>
