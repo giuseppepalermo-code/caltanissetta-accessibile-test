@@ -969,6 +969,8 @@ btnRouteMode.addEventListener("click", () => {
 
   if (routePoints.length >= 2) {
     console.log("PERCORSO TERMINATO:", routePoints);
+
+salvaPercorsoTest(routePoints);
   }
 }
 });
@@ -976,6 +978,41 @@ btnRouteMode.addEventListener("click", () => {
 // EVENTI MAPPA
 // -------------------------------
 
+async function salvaPercorsoTest(punti) {
+  if (!punti || punti.length < 2) return;
+
+  const primoPunto = punti[0];
+  const ultimoPunto = punti[punti.length - 1];
+
+  const nuovoSegmento = {
+    percorso_id: 1,
+    ordine: 2,
+    nome: "Segmento tracciato dalla mappa",
+    descrizione: "Tracciato sperimentale",
+    stato: "in rilevazione",
+    colore: "blu",
+    tracciato: punti,
+    lat_inizio: primoPunto[0],
+    lng_inizio: primoPunto[1],
+    lat_fine: ultimoPunto[0],
+    lng_fine: ultimoPunto[1],
+    note: "Percorso salvato dalla mappa TEST"
+  };
+
+  const { data, error } = await supabaseClient
+    .from("segmenti")
+    .insert([nuovoSegmento])
+    .select();
+
+  if (error) {
+    console.error("ERRORE SALVATAGGIO PERCORSO:", error);
+    alert("Il percorso non è stato salvato.");
+    return;
+  }
+
+  console.log("PERCORSO SALVATO:", data);
+  alert("Percorso di prova salvato correttamente.");
+}
 map.on("click", async (e) => {
     if (routeMode) {
     routePoints.push([e.latlng.lat, e.latlng.lng]);
