@@ -942,12 +942,51 @@ async function uploadSinglePhoto(file) {
 
   return safeName;
 }
+// -------------------------------
+// MODALITA' TRACCIA PERCORSO
+// -------------------------------
 
+const btnRouteMode = document.getElementById("btnRouteMode");
+
+let routeMode = false;
+let routePoints = [];
+let routeLine = null;
+
+btnRouteMode.addEventListener("click", () => {
+  routeMode = !routeMode;
+
+  if (routeMode) {
+    routePoints = [];
+
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+
+    btnRouteMode.textContent = "⏹️ Termina percorso";
+  } else {
+    btnRouteMode.textContent = "🛣️ Traccia percorso";
+  }
+});
 // -------------------------------
 // EVENTI MAPPA
 // -------------------------------
 
 map.on("click", async (e) => {
+    if (routeMode) {
+    routePoints.push([e.latlng.lat, e.latlng.lng]);
+
+    if (routeLine) {
+      routeLine.setLatLngs(routePoints);
+    } else {
+      routeLine = L.polyline(routePoints, {
+        color: "blue",
+        weight: 6
+      }).addTo(map);
+    }
+
+    return;
+  }
   const nearestPoint = findNearestPointWithinTolerance(e.latlng);
 
   if (nearestPoint) {
