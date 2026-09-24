@@ -947,6 +947,7 @@ async function uploadSinglePhoto(file) {
 // -------------------------------
 
 const btnRouteMode = document.getElementById("btnRouteMode");
+const btnSavedRoutes = document.getElementById("btnSavedRoutes");
 
 let routeMode = false;
 let routePoints = [];
@@ -1042,6 +1043,7 @@ async function mostraPercorsiSalvati() {
 
   console.log("PERCORSI CARICATI:", data);
 }
+btnSavedRoutes.addEventListener("click", mostraPercorsiSalvati);
 map.on("click", async (e) => {
     if (routeMode) {
     routePoints.push([e.latlng.lat, e.latlng.lng]);
