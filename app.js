@@ -951,7 +951,7 @@ const btnRouteMode = document.getElementById("btnRouteMode");
 let routeMode = false;
 let routePoints = [];
 let routeLine = null;
-
+let savedRouteLines = [];
 btnRouteMode.addEventListener("click", () => {
   routeMode = !routeMode;
 
@@ -1012,6 +1012,35 @@ async function salvaPercorsoTest(punti) {
 
   console.log("PERCORSO SALVATO:", data);
   alert("Percorso di prova salvato correttamente.");
+}
+
+async function mostraPercorsiSalvati() {
+  const { data, error } = await supabaseClient
+    .from("segmenti")
+    .select("id, nome, colore, tracciato")
+    .not("tracciato", "is", null);
+
+  if (error) {
+    console.error("ERRORE LETTURA PERCORSI:", error);
+    alert("Non riesco a caricare i percorsi salvati.");
+    return;
+  }
+
+  savedRouteLines.forEach(line => map.removeLayer(line));
+  savedRouteLines = [];
+
+  data.forEach(segmento => {
+    if (!segmento.tracciato || segmento.tracciato.length < 2) return;
+
+    const linea = L.polyline(segmento.tracciato, {
+      color: segmento.colore || "blue",
+      weight: 6
+    }).addTo(map);
+
+    savedRouteLines.push(linea);
+  });
+
+  console.log("PERCORSI CARICATI:", data);
 }
 map.on("click", async (e) => {
     if (routeMode) {
