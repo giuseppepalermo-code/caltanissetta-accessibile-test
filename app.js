@@ -965,8 +965,12 @@ btnRouteMode.addEventListener("click", () => {
 
     btnRouteMode.textContent = "⏹️ Termina percorso";
   } else {
-    btnRouteMode.textContent = "🛣️ Traccia percorso";
+  btnRouteMode.textContent = "🗺️ Traccia percorso";
+
+  if (routePoints.length >= 2) {
+    console.log("PERCORSO TERMINATO:", routePoints);
   }
+}
 });
 // -------------------------------
 // EVENTI MAPPA
