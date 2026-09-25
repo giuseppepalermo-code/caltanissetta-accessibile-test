@@ -1044,6 +1044,7 @@ async function mostraPercorsiSalvati() {
   if (savedRouteLines.length > 0) {
   const gruppoPercorsi = L.featureGroup(savedRouteLines);
   map.fitBounds(gruppoPercorsi.getBounds(), { padding: [30, 30] });
+map.setZoom(17);
 }
   console.log("PERCORSI CARICATI:", data);
 }
