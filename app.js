@@ -1034,7 +1034,7 @@ async function mostraPercorsiSalvati() {
     if (!segmento.tracciato || segmento.tracciato.length < 2) return;
 
     const linea = L.polyline(segmento.tracciato, {
-      color: segmento.colore || "blue",
+     color: "blue",
       weight: 6
     }).addTo(map);
 
