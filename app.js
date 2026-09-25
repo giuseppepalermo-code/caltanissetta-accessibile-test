@@ -1016,7 +1016,7 @@ async function salvaPercorsoTest(punti) {
 }
 
 async function mostraPercorsiSalvati() {
-  const { data, error } = await supabaseClient
+   const { data, error } = await supabaseClient
     .from("segmenti")
     .select("id, nome, colore, tracciato")
     .not("tracciato", "is", null);
