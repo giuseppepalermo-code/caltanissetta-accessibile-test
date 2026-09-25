@@ -1041,6 +1041,10 @@ async function mostraPercorsiSalvati() {
     savedRouteLines.push(linea);
   });
 
+  if (savedRouteLines.length > 0) {
+  const gruppoPercorsi = L.featureGroup(savedRouteLines);
+  map.fitBounds(gruppoPercorsi.getBounds(), { padding: [30, 30] });
+}
   console.log("PERCORSI CARICATI:", data);
 }
 btnSavedRoutes.addEventListener("click", mostraPercorsiSalvati);
