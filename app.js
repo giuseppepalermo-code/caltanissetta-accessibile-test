@@ -1043,7 +1043,7 @@ async function mostraPercorsiSalvati() {
 
  if (savedRouteLines.length > 0) {
   const centroPercorso = L.featureGroup(savedRouteLines).getBounds().getCenter();
-  map.setView(centroPercorso, 13);
+  map.setView(centroPercorso, 18);
 }
   console.log("PERCORSI CARICATI:", data);
 }
